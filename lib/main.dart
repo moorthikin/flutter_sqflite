@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_sqflite/screens/addnote.dart';
+import 'package:flutter_sqflite/screens/notescreen.dart';
 
 void main() {
-  runApp( const MyApp());
+  runApp(const MyApp());
 }
 
 class MyApp extends StatefulWidget {
@@ -15,9 +17,9 @@ class _MyAppState extends State<MyApp> {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      home: Scaffold(appBar: AppBar(
-        title: const Text("SQF Lite APP"),
-      )),
-    );
+        debugShowCheckedModeBanner: false,
+        themeMode: ThemeMode.system,
+        routes: {"/note": (context) => NewNoteScreen()},
+        home: NoteScreen());
   }
 }
