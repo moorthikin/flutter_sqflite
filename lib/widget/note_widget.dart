@@ -15,6 +15,10 @@ class NoteWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final deadlineLabel = (note.deadline == null || note.deadline!.isEmpty)
+        ? 'No deadline'
+        : note.deadline!.split('T').first;
+
     return InkWell(
       onLongPress: onLongPress,
       onTap: onTap,
@@ -28,10 +32,11 @@ class NoteWidget extends StatelessWidget {
                 fontWeight: FontWeight.bold, color: textcolor, fontSize: 25),
           ),
           subtitle: Text(
-            note.description,
+            '${note.description}\nPriority: ${note.priority} • Deadline: $deadlineLabel',
             style: TextStyle(
                 fontWeight: FontWeight.w400, color: textcolor, fontSize: 17),
           ),
+          isThreeLine: true,
         ),
         // child: Card(
         //   elevation: 2,

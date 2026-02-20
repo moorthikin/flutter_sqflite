@@ -6,13 +6,19 @@ import 'package:sqflite/sqflite.dart';
 import 'package:path/path.dart';
 
 class DatabaseHelper {
-  static const int _dbvesrion = 1;
+  static const int _dbvesrion = 2;
   static const String _dbname = 'moorthidb';
 
   static Future<Database> _getDb() async {
     return openDatabase(join(await getDatabasesPath(), _dbname),
         onCreate: (db, version) async => await db.execute(
-            'CREATE TABLE Note (id INTEGER PRIMARY KEY, title TEXT, description TEXT)'),
+            'CREATE TABLE Note (id INTEGER PRIMARY KEY, title TEXT, description TEXT, priority TEXT, deadline TEXT)'),
+        onUpgrade: (db, oldVersion, newVersion) async {
+          if (oldVersion < 2) {
+            await db.execute("ALTER TABLE Note ADD COLUMN priority TEXT");
+            await db.execute("ALTER TABLE Note ADD COLUMN deadline TEXT");
+          }
+        },
         version: _dbvesrion);
   }
 
