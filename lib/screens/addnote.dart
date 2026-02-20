@@ -20,6 +20,13 @@ class _NewNoteScreenState extends State<NewNoteScreen> {
 
   final _formkey = GlobalKey<FormState>();
 
+  DateTime _dateOnly(DateTime date) => DateTime(date.year, date.month, date.day);
+
+  bool _isSameDate(DateTime first, DateTime second) =>
+      first.year == second.year &&
+      first.month == second.month &&
+      first.day == second.day;
+
   @override
   void initState() {
     super.initState();
@@ -41,11 +48,16 @@ class _NewNoteScreenState extends State<NewNoteScreen> {
   }
 
   Future<void> _pickDeadline() async {
-    final now = DateTime.now();
+    final now = _dateOnly(DateTime.now());
+    final initialDate =
+        selectedDeadline != null && !selectedDeadline!.isBefore(now)
+            ? selectedDeadline!
+            : now;
+
     final pickedDate = await showDatePicker(
       context: context,
-      initialDate: selectedDeadline ?? now,
-      firstDate: DateTime(now.year - 5),
+      initialDate: initialDate,
+      firstDate: now,
       lastDate: DateTime(now.year + 10),
     );
 
@@ -78,125 +90,153 @@ class _NewNoteScreenState extends State<NewNoteScreen> {
           color: textcolor,
         ),
       ),
-      body: Column(
-        children: [
-          Padding(
-            padding: const EdgeInsets.only(left: 10, top: 35),
-            child: TextFormField(
-              key: _formkey,
-              controller: notecontroller,
-              decoration: InputDecoration(
-                filled: false,
-                hintText: " Your Note",
+      body: Form(
+        key: _formkey,
+        child: Column(
+          children: [
+            Padding(
+              padding: const EdgeInsets.only(left: 10, top: 35),
+              child: TextFormField(
+                controller: notecontroller,
+                decoration: InputDecoration(
+                  filled: false,
+                  hintText: " Your Note",
+                ),
+                validator: (value) {
+                  if (value == null || value.trim().isEmpty) {
+                    return "Please add the note";
+                  } else if (value.trim().length < 3) {
+                    return "At least 3 characters are required";
+                  }
+                  return null;
+                },
               ),
-              // validator: (value) {
-              //   if (value == null || value.isEmpty) {
-              //     return "Please add the note";
-              //   } else if (value.length < 3) {
-              //     return "Atleast must be 3 characters";
-              //   }
-              //   return null;
-              // },
             ),
-          ),
-          Padding(
-            padding: const EdgeInsets.only(left: 10, top: 35),
-            child: TextFormField(
-              // key: _formkey1,
-              controller: descriptioncontroller,
-              decoration:
-                  InputDecoration(filled: false, hintText: " Your Description"),
-              // validator: (value) {
-              //   if (value!.isEmpty) {
-              //     return "Please add the Description";
-              //   } else if (value.length < 3) {
-              //     return "Atleast must be 3 characters";
-              //   }
-              //   return null;
-              // },
-            ),
-          ),
-          Padding(
-            padding: const EdgeInsets.only(left: 10, top: 20, right: 10),
-            child: DropdownButtonFormField<String>(
-              value: selectedPriority,
-              decoration: const InputDecoration(
-                hintText: 'Priority',
+            Padding(
+              padding: const EdgeInsets.only(left: 10, top: 35),
+              child: TextFormField(
+                controller: descriptioncontroller,
+                decoration:
+                    InputDecoration(filled: false, hintText: " Your Description"),
+                validator: (value) {
+                  if (value == null || value.trim().isEmpty) {
+                    return "Please add the description";
+                  } else if (value.trim().length < 10) {
+                    return "Description must be at least 10 characters";
+                  }
+                  return null;
+                },
               ),
-              items: const ['Low', 'Medium', 'High']
-                  .map((priority) => DropdownMenuItem<String>(
-                        value: priority,
-                        child: Text(priority),
-                      ))
-                  .toList(),
-              onChanged: (value) {
-                if (value != null) {
-                  setState(() {
-                    selectedPriority = value;
-                  });
-                }
-              },
             ),
-          ),
-          Padding(
-            padding: const EdgeInsets.only(left: 10, top: 20, right: 10),
-            child: InkWell(
-              onTap: _pickDeadline,
-              child: InputDecorator(
+            Padding(
+              padding: const EdgeInsets.only(left: 10, top: 20, right: 10),
+              child: DropdownButtonFormField<String>(
+                value: selectedPriority,
                 decoration: const InputDecoration(
-                  hintText: 'Deadline Date',
+                  hintText: 'Priority',
                 ),
-                child: Text(
-                  selectedDeadline == null
-                      ? 'Select deadline date'
-                      : '${selectedDeadline!.year.toString().padLeft(4, '0')}-${selectedDeadline!.month.toString().padLeft(2, '0')}-${selectedDeadline!.day.toString().padLeft(2, '0')}',
+                items: const ['Low', 'Medium', 'High']
+                    .map((priority) => DropdownMenuItem<String>(
+                          value: priority,
+                          child: Text(priority),
+                        ))
+                    .toList(),
+                onChanged: (value) {
+                  if (value != null) {
+                    setState(() {
+                      selectedPriority = value;
+                    });
+                  }
+                },
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.only(left: 10, top: 20, right: 10),
+              child: InkWell(
+                onTap: _pickDeadline,
+                child: InputDecorator(
+                  decoration: const InputDecoration(
+                    hintText: 'Deadline Date',
+                  ),
+                  child: Text(
+                    selectedDeadline == null
+                        ? 'Select deadline date'
+                        : '${selectedDeadline!.year.toString().padLeft(4, '0')}-${selectedDeadline!.month.toString().padLeft(2, '0')}-${selectedDeadline!.day.toString().padLeft(2, '0')}',
+                  ),
                 ),
               ),
             ),
-          ),
-          SizedBox(
-            height: 60,
-          ),
-          GestureDetector(
-            onTap: () async {
-              final title = notecontroller.value.text;
-              final description = descriptioncontroller.value.text;
+            SizedBox(
+              height: 60,
+            ),
+            GestureDetector(
+              onTap: () async {
+                if (!_formkey.currentState!.validate()) {
+                  return;
+                }
 
-              if (title.isEmpty || description.isEmpty) {
-                return null;
-              }
+                final today = _dateOnly(DateTime.now());
+                final normalizedSelectedDeadline = selectedDeadline != null
+                    ? _dateOnly(selectedDeadline!)
+                    : null;
+                final originalDeadline = widget.note?.deadline != null
+                    ? DateTime.tryParse(widget.note!.deadline!)
+                    : null;
+                final normalizedOriginalDeadline = originalDeadline != null
+                    ? _dateOnly(originalDeadline)
+                    : null;
+                final isKeepingExistingPastDeadline =
+                    widget.note != null &&
+                        normalizedSelectedDeadline != null &&
+                        normalizedOriginalDeadline != null &&
+                        normalizedSelectedDeadline.isBefore(today) &&
+                        _isSameDate(
+                            normalizedSelectedDeadline, normalizedOriginalDeadline);
 
-              final Note model = Note(
-                  title: title,
-                  description: description,
-                  priority: selectedPriority,
-                  deadline: selectedDeadline?.toIso8601String(),
-                  id: widget.note?.id);
+                if (normalizedSelectedDeadline != null &&
+                    normalizedSelectedDeadline.isBefore(today) &&
+                    !isKeepingExistingPastDeadline) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content:
+                          Text('Please select today or a future deadline date'),
+                    ),
+                  );
+                  return;
+                }
 
-              if (widget.note == null) {
-                await DatabaseHelper.addNote(model);
-              } else {
-                await DatabaseHelper.updateNote(model);
-              }
-              Navigator.pop(context);
-            },
-            child: Container(
-              height: 50,
-              width: 350,
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(12),
-                color: buttonColor,
-              ),
-              child: Center(
-                child: Text(
-                  widget.note == null ? "Save" : "Update",
-                  style:
-                      TextStyle(color: textcolor, fontWeight: FontWeight.bold),
+                final Note model = Note(
+                    title: notecontroller.text.trim(),
+                    description: descriptioncontroller.text.trim(),
+                    priority: selectedPriority,
+                    deadline: selectedDeadline?.toIso8601String(),
+                    id: widget.note?.id);
+
+                if (widget.note == null) {
+                  await DatabaseHelper.addNote(model);
+                } else {
+                  await DatabaseHelper.updateNote(model);
+                }
+                Navigator.pop(context);
+              },
+              child: Container(
+                height: 50,
+                width: 350,
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(12),
+                  color: buttonColor,
+                ),
+                child: Center(
+                  child: Text(
+                    widget.note == null ? "Save" : "Update",
+                    style:
+                        TextStyle(color: textcolor, fontWeight: FontWeight.bold),
+                  ),
                 ),
               ),
-            ),
-          )
-        ],
+            )
+          ],
+        ),
       ),
     );
   }
