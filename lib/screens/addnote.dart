@@ -4,26 +4,65 @@ import 'package:flutter_sqflite/model/note_model.dart';
 import 'package:flutter_sqflite/screens/notescreen.dart';
 import 'package:flutter_sqflite/utili/colors.dart';
 
-class NewNoteScreen extends StatelessWidget {
+class NewNoteScreen extends StatefulWidget {
   NewNoteScreen({super.key, this.note});
   final Note? note;
-  final notecontroller = TextEditingController();
 
+  @override
+  State<NewNoteScreen> createState() => _NewNoteScreenState();
+}
+
+class _NewNoteScreenState extends State<NewNoteScreen> {
+  final notecontroller = TextEditingController();
   final descriptioncontroller = TextEditingController();
+  String selectedPriority = 'Low';
+  DateTime? selectedDeadline;
 
   final _formkey = GlobalKey<FormState>();
 
   @override
-  Widget build(BuildContext context) {
-    if (note != null) {
-      notecontroller.text = note!.title;
-      descriptioncontroller.text = note!.description;
+  void initState() {
+    super.initState();
+    if (widget.note != null) {
+      notecontroller.text = widget.note!.title;
+      descriptioncontroller.text = widget.note!.description;
+      selectedPriority = widget.note!.priority;
+      if (widget.note!.deadline != null && widget.note!.deadline!.isNotEmpty) {
+        selectedDeadline = DateTime.tryParse(widget.note!.deadline!);
+      }
     }
+  }
+
+  @override
+  void dispose() {
+    notecontroller.dispose();
+    descriptioncontroller.dispose();
+    super.dispose();
+  }
+
+  Future<void> _pickDeadline() async {
+    final now = DateTime.now();
+    final pickedDate = await showDatePicker(
+      context: context,
+      initialDate: selectedDeadline ?? now,
+      firstDate: DateTime(now.year - 5),
+      lastDate: DateTime(now.year + 10),
+    );
+
+    if (pickedDate != null) {
+      setState(() {
+        selectedDeadline = pickedDate;
+      });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
         backgroundColor: primary,
         title: Text(
-          note == null ? "Add New Note" : "Edit Note",
+          widget.note == null ? "Add New Note" : "Edit Note",
           style: TextStyle(color: textcolor),
         ),
         centerTitle: true,
@@ -77,6 +116,44 @@ class NewNoteScreen extends StatelessWidget {
               // },
             ),
           ),
+          Padding(
+            padding: const EdgeInsets.only(left: 10, top: 20, right: 10),
+            child: DropdownButtonFormField<String>(
+              value: selectedPriority,
+              decoration: const InputDecoration(
+                hintText: 'Priority',
+              ),
+              items: const ['Low', 'Medium', 'High']
+                  .map((priority) => DropdownMenuItem<String>(
+                        value: priority,
+                        child: Text(priority),
+                      ))
+                  .toList(),
+              onChanged: (value) {
+                if (value != null) {
+                  setState(() {
+                    selectedPriority = value;
+                  });
+                }
+              },
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.only(left: 10, top: 20, right: 10),
+            child: InkWell(
+              onTap: _pickDeadline,
+              child: InputDecorator(
+                decoration: const InputDecoration(
+                  hintText: 'Deadline Date',
+                ),
+                child: Text(
+                  selectedDeadline == null
+                      ? 'Select deadline date'
+                      : '${selectedDeadline!.year.toString().padLeft(4, '0')}-${selectedDeadline!.month.toString().padLeft(2, '0')}-${selectedDeadline!.day.toString().padLeft(2, '0')}',
+                ),
+              ),
+            ),
+          ),
           SizedBox(
             height: 60,
           ),
@@ -89,10 +166,14 @@ class NewNoteScreen extends StatelessWidget {
                 return null;
               }
 
-              final Note model =
-                  Note(title: title, description: description, id: note?.id);
+              final Note model = Note(
+                  title: title,
+                  description: description,
+                  priority: selectedPriority,
+                  deadline: selectedDeadline?.toIso8601String(),
+                  id: widget.note?.id);
 
-              if (note == null) {
+              if (widget.note == null) {
                 await DatabaseHelper.addNote(model);
               } else {
                 await DatabaseHelper.updateNote(model);
@@ -108,7 +189,7 @@ class NewNoteScreen extends StatelessWidget {
               ),
               child: Center(
                 child: Text(
-                  note == null ? "Save" : "Update",
+                  widget.note == null ? "Save" : "Update",
                   style:
                       TextStyle(color: textcolor, fontWeight: FontWeight.bold),
                 ),
