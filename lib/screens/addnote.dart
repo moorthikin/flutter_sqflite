@@ -22,6 +22,11 @@ class _NewNoteScreenState extends State<NewNoteScreen> {
 
   DateTime _dateOnly(DateTime date) => DateTime(date.year, date.month, date.day);
 
+  bool _isSameDate(DateTime first, DateTime second) =>
+      first.year == second.year &&
+      first.month == second.month &&
+      first.day == second.day;
+
   @override
   void initState() {
     super.initState();
@@ -171,8 +176,26 @@ class _NewNoteScreenState extends State<NewNoteScreen> {
                 }
 
                 final today = _dateOnly(DateTime.now());
-                if (selectedDeadline != null &&
-                    _dateOnly(selectedDeadline!).isBefore(today)) {
+                final normalizedSelectedDeadline = selectedDeadline != null
+                    ? _dateOnly(selectedDeadline!)
+                    : null;
+                final originalDeadline = widget.note?.deadline != null
+                    ? DateTime.tryParse(widget.note!.deadline!)
+                    : null;
+                final normalizedOriginalDeadline = originalDeadline != null
+                    ? _dateOnly(originalDeadline)
+                    : null;
+                final isKeepingExistingPastDeadline =
+                    widget.note != null &&
+                        normalizedSelectedDeadline != null &&
+                        normalizedOriginalDeadline != null &&
+                        normalizedSelectedDeadline.isBefore(today) &&
+                        _isSameDate(
+                            normalizedSelectedDeadline, normalizedOriginalDeadline);
+
+                if (normalizedSelectedDeadline != null &&
+                    normalizedSelectedDeadline.isBefore(today) &&
+                    !isKeepingExistingPastDeadline) {
                   ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(
                       content:
